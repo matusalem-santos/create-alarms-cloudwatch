@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: python3.8
+    Timeout: 15
+    
+
+    
+Resources:
+  CreateAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: create-alarms
+      CodeUri: create-alarms/
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        JobDeleteAlarms:
+          Type: Schedule
+          Properties:
+            Schedule: rate(10 minutes)
+            Name: cron-create-alarms
+            Description: Executar a lambda que cria os alarms
+            Enabled: True
+
+  DeleteAlarmsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: delete-alarms
+      CodeUri: delete-alarms/
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        JobDeleteAlarms:
+          Type: Schedule
+          Properties:
+            Schedule: rate(12 hours)
+            Name: cron-delete-alarms
+            Description: Executar a lambda que deleta os alarms com INSUFICIENTE DATA
+            Enabled: True
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: CloudWatchLogsAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+      - PolicyName: SNSAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - sns:*
+            Resource: "*"
+      - PolicyName: EC2Access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:DescribeInstances
+            - ec2:DescribeVolumes
+            Resource: "*"
+      - PolicyName: CloudWatchAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - cloudwatch:*
+            Resource: "*"
